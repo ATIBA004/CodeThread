@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: qa
+      POSTGRES_PASSWORD: qa
+      POSTGRES_DB: qa
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qa -d qa"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+
+  app:
+    build: .
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://qa:qa@db:5432/qa
+      PGHOST: db
+      PGPORT: "5432"
+      POSTGRES_USER: qa
+      POSTGRES_PASSWORD: qa
+      SESSION_SECRET: "docker-compose-dev-secret-min-32-chars-long!!"
+      # Must be false for http://localhost — Secure cookies are not stored over HTTP
+      SESSION_COOKIE_SECURE: "false"
+      NODE_ENV: production
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:
